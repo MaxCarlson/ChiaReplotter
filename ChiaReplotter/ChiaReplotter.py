@@ -39,26 +39,35 @@ def get_platform():
 
 def replot(chiaLocation):
     if get_platform() == 'Windows':
-        subprocess.call(['powershell', 'cd {}; ./chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
+        return subprocess.call(['powershell', 'cd {}; ./chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
             args.chia_loc, args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
     else:
-        subprocess.call(['cd {}'.format(args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
+        return subprocess.call(['cd {}'.format(args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
             args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
 
 
 # Remove first 'remove_count' *.plot files from 'remove_dir' directory
 def deletePlots(args):
+    print()
     plots = os.listdir(args.remove_dir)
     plots = [p for p in plots if p.endswith('.plot')]
     for i, p in zip(range(args.remove_count), plots):
-        os.remove(os.path.join(args.remove_dir, p)) 
+        pltstr = os.path.join(args.remove_dir, p)
+        print('Removing plot {}'.format(pltstr))
+        os.remove(pltstr) 
+    print()
 
 def run(args):
     run = 0
+    print('Starting...')
     for i in range(args.runs):
+        print('Step {} of {}'.format(i+1, args.runs))
         if args.remove_count:
             deletePlots(args)
-        replot(args)
+        proc = replot(args)
+
+        # TODO: Print/stop on error state from proc
+        print('Finished plotting {} plots'.format(args.n))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
