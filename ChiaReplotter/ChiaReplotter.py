@@ -43,7 +43,7 @@ def replot(chiaLocation):
             args.chia_loc, args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
     else:
         return subprocess.call(['cd {}'.format(args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
-            args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
+            args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=args.shell)
 
 
 # Remove first 'remove_count' *.plot files from 'remove_dir' directory
@@ -55,6 +55,9 @@ def deletePlots(args):
         pltstr = os.path.join(args.remove_dir, p)
         print('Removing plot {}'.format(pltstr))
         os.remove(pltstr) 
+
+    if i < args.remove_count:
+        print('Was only able to remove {} plots!'.format(i))
     print()
 
 def run(args):
@@ -83,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument('--remove_count', type=int, default=0, help='Plots to remove per iteration')
     parser.add_argument('--remove_dir', type=str)
     parser.add_argument('--runs', default=1, help="Total iterations to run a set of delete and replots")
+    parser.add_argument('--shell', type=bool, default=True)
     args = parser.parse_args()
 
     run(args)
