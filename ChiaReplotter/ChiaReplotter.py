@@ -1,28 +1,57 @@
 import os
+import sys
 import argparse
 import subprocess
 
-".\chia.exe plots create -k 32 -b 3700 -u 128 -r 4 -t B:\Chia -d E:\Chia -n 10"
+# Note, in order to kill this process (on Windows) once running, you must close the powershell/terminal window
+# Ctrl-c does not seem to work
 
-'./chia.exe plots create -k 32 -b 3700 -u 128 -r 4 -t B:/Chia -d E:/Chia -n 10'
+# Example desired plotting command for chia
+'./chia.exe plots create -k 32 -b 3400 -u 128 -r 2 -t C:/NewPlots/Temp/Folder -d C:/NewPlots/Final/Folder -n 3'
 
+# Example command to run (without newlines) from directory containing this file
+# Running this command will first delete 3 plots in the remove_dir directory
+# Next, it will run the above command. It will repeat this five times
+"""
+python ChiaReplotter.py -t "C:/NewPlots/Temp/Folder"
+-d "C:/NewPlots/Final/Folder" --remove_count 3
+--remove_dir "C:/Directory/With/Old/Plots"
+--runs 5 -n 3
+"""
+
+# Example command for my testing
+"""
+python ChiaReplotter.py -t "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" -d "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" --remove_count 3 --remove_dir "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/oldplots"
+"""
+
+
+def get_platform():
+    platforms = {
+        'linux1' : 'Linux',
+        'linux2' : 'Linux',
+        'darwin' : 'OS X',
+        'win32' : 'Windows'
+    }
+    if sys.platform not in platforms:
+        return sys.platform
+    
+    return platforms[sys.platform]
 
 def replot(chiaLocation):
-    cproc = subprocess.call(['powershell', 'cd {}; ./chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
-        args.chia_loc, args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
+    if get_platform() == 'Windows':
+        subprocess.call(['powershell', 'cd {}; ./chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
+            args.chia_loc, args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
+    else:
+        subprocess.call(['cd {}'.format(args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
+            args.k, args.b, args.u, args.r, args.t, args.d, args.n)], shell=True)
 
 
 # Remove first 'remove_count' *.plot files from 'remove_dir' directory
 def deletePlots(args):
     plots = os.listdir(args.remove_dir)
-
-    i = 0
-    for p in plots:
-        if p.endswith('.plot'):
-            os.remove(p)
-            i += 1
-        if i >= args.remove_count:
-            break
+    plots = [p for p in plots if p.endswith('.plot')]
+    for i, p in zip(range(args.remove_count), plots):
+        os.remove(os.path.join(args.remove_dir, p)) 
 
 def run(args):
     run = 0
@@ -30,7 +59,6 @@ def run(args):
         if args.remove_count:
             deletePlots(args)
         replot(args)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -43,9 +71,9 @@ if __name__ == "__main__":
     parser.add_argument('-n', type=int, default=1)
     parser.add_argument('--chia_loc', 
                         default='C:/Users/$env:UserName/AppData/Local/chia-blockchain/app-*/resources/app.asar.unpacked/daemon')
-    parser.add_argument('--remove_count', default=0, help='Plots to remove per iteration')
+    parser.add_argument('--remove_count', type=int, default=0, help='Plots to remove per iteration')
     parser.add_argument('--remove_dir', type=str)
-    parser.add_argument('--runs', default=1, 'Total iterations to run a set of delete and replots')
+    parser.add_argument('--runs', default=1, help="Total iterations to run a set of delete and replots")
     args = parser.parse_args()
 
     run(args)
