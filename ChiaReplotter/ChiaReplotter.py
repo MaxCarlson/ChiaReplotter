@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 import subprocess
-import threading as th
+from threading import Thread, Lock
 
 # Note, in order to kill this process (on Windows) once running, you must close the powershell/terminal window
 # Ctrl-c does not seem to work
@@ -25,7 +25,6 @@ python ChiaReplotter.py -t "C:/NewPlots/Temp/Folder"
 python ChiaReplotter.py -t "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" -d "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" --remove_count 3 --remove_dir "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/oldplots"
 """
 
-
 def get_platform():
     platforms = {
         'linux1' : 'Linux',
@@ -38,19 +37,34 @@ def get_platform():
     
     return platforms[sys.platform]
 
+# Remove first 'remove_count' *.plot files from 'remove_dir' directory
+class PlotDeleter():
+    def __init__(self):
+        self.lock = Lock()
 
-class Replotter(th.Thread):
+    def deletePlots(self, args):
+        with self.lock:
+            print('Entering!!')
+            plots = os.listdir(args.remove_dir)
+            plots = [p for p in plots if p.endswith('.plot')]
+            for i, p in zip(range(args.remove_count), plots):
+                print('Removing plot {}'.format(os.path.join(args.remove_dir, p)))
 
-    def __init__(self, args):
-        th.Thread.__init__(self)
+deleter = PlotDeleter()
+
+class Replotter(Thread):
+
+    def __init__(self, args, name):
+        Thread.__init__(self)
         self.args = args
+        self.name = name
 
     def run(self):
-        print('Starting Run..')
+        print('Starting run for plotter {} ...'.format(self.name))
         for i in range(self.args.runs):
             print('Step {} of {}'.format(i+1, self.args.runs))
             if self.args.remove_count:
-                self.deletePlots()
+                deleter.deletePlots(self.args)
             self.replot()
 
             # TODO: Print/stop on error state from proc
@@ -65,17 +79,6 @@ class Replotter(th.Thread):
         #    return subprocess.call(['cd {}'.format(self.args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
         #        self.args.k, self.args.b, self.args.u, self.args.r, self.args.t, self.args.d, self.args.n)], shell=self.args.shell)
 
-
-    # Remove first 'remove_count' *.plot files from 'remove_dir' directory
-    def deletePlots(self):
-        #print()
-        plots = os.listdir(self.args.remove_dir)
-        plots = [p for p in plots if p.endswith('.plot')]
-        for i, p in zip(range(self.args.remove_count), plots):
-            pltstr = os.path.join(self.args.remove_dir, p)
-            print('Removing plot {}'.format(pltstr))
-            os.remove(pltstr) 
-
         #if i < self.args.remove_count:
         #    print('Was only able to remove {} plots!'.format(i))
         #print()
@@ -83,7 +86,7 @@ class Replotter(th.Thread):
 def run(args):
     procs = []
     for i in range(args.concurrent):
-        procs.append(Replotter(args))
+        procs.append(Replotter(args, 'Plotter {}'.format(i+1)))
         procs[i].start()
 
     for p in procs:
