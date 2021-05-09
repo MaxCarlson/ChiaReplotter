@@ -37,7 +37,6 @@ def get_platform():
     
     return platforms[sys.platform]
 
-# Remove first 'remove_count' *.plot files from 'remove_dir' directory
 class PlotDeleter():
     def __init__(self):
         self.lock = Lock()
@@ -48,7 +47,10 @@ class PlotDeleter():
             plots = os.listdir(args.remove_dir)
             plots = [p for p in plots if p.endswith('.plot')]
             for i, p in zip(range(args.remove_count), plots):
-                print('Removing plot {}'.format(os.path.join(args.remove_dir, p)))
+                pltstr = os.path.join(args.remove_dir, p)
+                print('Removing plot {}'.format(pltstr))
+                os.remove(pltstr) 
+
 
 deleter = PlotDeleter()
 
