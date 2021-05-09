@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import argparse
 import subprocess
 from threading import Thread, Lock
@@ -51,7 +52,7 @@ class PlotDeleter():
                 print('Removing plot {}'.format(pltstr))
                 os.remove(pltstr) 
 
-
+# Singleton class to delete plots without a race 
 deleter = PlotDeleter()
 
 class Replotter(Thread):
@@ -60,6 +61,10 @@ class Replotter(Thread):
         Thread.__init__(self)
         self.args = args
         self.name = name
+        self.count = 0
+
+    def poll(self):
+        return (self.count, )
 
     def run(self):
         print('Starting run for plotter {} ...'.format(self.name))
@@ -68,7 +73,7 @@ class Replotter(Thread):
             if self.args.remove_count:
                 deleter.deletePlots(self.args)
             self.replot()
-
+            self.count += 1
             # TODO: Print/stop on error state from proc
             #print('Finished plotting {} plots'.format(self.args.n))
 
@@ -85,11 +90,19 @@ class Replotter(Thread):
         #    print('Was only able to remove {} plots!'.format(i))
         #print()
 
+def runLoop(procs):
+    while all(p.is_alive() for p in procs):
+        time.sleep(10)
+        for p in procs:
+            count = p.poll()
+
 def run(args):
     procs = []
     for i in range(args.concurrent):
         procs.append(Replotter(args, 'Plotter {}'.format(i+1)))
         procs[i].start()
+
+    runLoop(procs)
 
     for p in procs:
         p.join()
