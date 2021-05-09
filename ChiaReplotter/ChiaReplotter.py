@@ -60,7 +60,7 @@ class Replotter(th.Thread):
         if get_platform() == 'Windows':
             proc = subprocess.Popen(['powershell', 'cd {}; ./chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
                 self.args.chia_loc, self.args.k, self.args.b, self.args.u, 
-                self.args.r, self.args.t, self.args.d, self.args.n)], shell=False)
+                self.args.r, self.args.t, self.args.d, self.args.n)], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         #else:
         #    return subprocess.call(['cd {}'.format(self.args.chia_loc), './chia.exe plots create -k {} -b {} -u {} -r {} -t {} -d {} -n {}'.format(
         #        self.args.k, self.args.b, self.args.u, self.args.r, self.args.t, self.args.d, self.args.n)], shell=self.args.shell)
