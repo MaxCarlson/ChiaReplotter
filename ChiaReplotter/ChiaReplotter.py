@@ -23,7 +23,7 @@ python ChiaReplotter.py -t "C:/NewPlots/Temp/Folder"
 
 # Example command for my testing
 """
-python ChiaReplotter.py -t "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" -d "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" --remove_count 3 --remove_dir "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/oldplots"
+python ChiaReplotter.py -t "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" -d "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/newplots" --remove_count 3 --remove_dir "C:/Users/$env:UserName/source/repos/ChiaReplotter/ChiaReplotter/oldplots" --concurrent 2 --stagger_time 10
 """
 
 def get_platform():
@@ -57,17 +57,21 @@ deleter = PlotDeleter()
 
 class Replotter(Thread):
 
-    def __init__(self, args, name):
+    def __init__(self, args, idx):
         Thread.__init__(self)
         self.args = args
-        self.name = name
         self.count = 0
+        self.idx = idx
 
     def poll(self):
-        return (self.count, )
+        return self.count
 
     def run(self):
-        print('Starting run for plotter {} ...'.format(self.name))
+        
+        # Sleep if we have a stagger time set and we're not the first plot
+        time.sleep(self.args.stagger_time * self.idx)
+
+        print('Starting run for plotter {} ...'.format(self.idx))
         for i in range(self.args.runs):
             print('Step {} of {}'.format(i+1, self.args.runs))
             if self.args.remove_count:
@@ -91,15 +95,23 @@ class Replotter(Thread):
         #print()
 
 def runLoop(procs):
-    while all(p.is_alive() for p in procs):
+    ii = 0
+    while any(p.is_alive() for p in procs):
+        print('\n'*50)
         time.sleep(10)
-        for p in procs:
+        s = ''
+        for i, p in enumerate(procs):
             count = p.poll()
+            s += 'Plotter {} has completed {} plots \n'.format(i, ii)
+        print(s)
+        ii += 1
+
+
 
 def run(args):
     procs = []
     for i in range(args.concurrent):
-        procs.append(Replotter(args, 'Plotter {}'.format(i+1)))
+        procs.append(Replotter(args, i))
         procs[i].start()
 
     runLoop(procs)
@@ -124,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument('--runs', default=1, help="Total iterations to run a set of delete and replots")
     parser.add_argument('--shell', type=bool, default=True)
     parser.add_argument('--concurrent', type=int, default=1)
-    parser.add_argument('--stagger_time', type=int, default=7500)
+    parser.add_argument('--stagger_time', type=int, default=0, help='Time to stagger plotting in seconds')
 
 
     args = parser.parse_args()
