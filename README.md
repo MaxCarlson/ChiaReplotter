@@ -10,8 +10,8 @@ You want to delete 5 old plots, then create five new plots
 You want to do this 10 times
 
 D:/soloPlots    contains old plots
-D:/newPlots     is where you would like your new plots to be
-B:/tempPlots    is the location where you want to have your temporary plots
+D:/newPlots     where you would like your new plots to be
+B:/tempPlots    the location where you want to have your temporary plots
 
 python ChiaReplotter.py -t "B:/tempPlots" -d "D:/newPlots" --remove_count 5 --remove_dir "D:/soloPlots" --runs 10 
 ```
